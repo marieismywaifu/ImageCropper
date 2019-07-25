@@ -10,6 +10,8 @@ _new in v2.0:_ images smaller than the desired resolution are supported
 with the left mouse button\
 the offsets ("How many pixels are cut off in this direction?") are displayed in the lower left corner\
 _new in v2.0:_ negative offsets ("How many pixels are added in this direction?") are supported
+### _new in v2.0:_ changing the zoom level
+higher values means zooming out
 ### _new in v2.0:_ selecting the edge mode
 - mirror: Default selection. The image is mirrored along the edges. The axis of symmetry goes THROUGH the line of pixels at the edge, not NEXT TO it.
 - smear: The pixel at the edge is duplicated. Almost always looks worse than mirror.
