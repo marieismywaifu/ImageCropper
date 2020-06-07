@@ -470,8 +470,8 @@ public class ImageCropper extends JFrame {
 		names = namesTemp;
 		sourceWidth = sourceWidthTemp;
 		sourceHeight = sourceHeightTemp;
-		x = 0;
-		y = 0;
+		x = (sourceWidth - zoomFactor * targetWidth) / 2;
+		y = (sourceHeight - zoomFactor * targetHeight) / 2;
 		
 		// continue execution
 		reRenderPreviewImage();
@@ -631,9 +631,11 @@ public class ImageCropper extends JFrame {
 	
 	// <editor-fold defaultstate="collapsed" desc="cmd_zoom">
 	private void cmd_zoom() {
-		final int zoomFactorTemp = (Integer) nbr_zoom.getValue();
-		if (zoomFactor == zoomFactorTemp) return;
-		zoomFactor = zoomFactorTemp;
+		final int zoomChange = ((Integer) nbr_zoom.getValue()) - zoomFactor;
+		if (zoomChange == 0) return;
+		zoomFactor += zoomChange;
+		x -= zoomChange * targetWidth / 2;
+		y -= zoomChange * targetHeight / 2;
 		final int addLeftRight = Math.max(0, zoomFactor * targetWidth - sourceWidth), addUpDown = Math.max(0, zoomFactor * targetHeight - sourceHeight);
 		if (x < -addLeftRight) x = -addLeftRight;
 		else if (x + zoomFactor * targetWidth > sourceWidth + addLeftRight) x = sourceWidth - zoomFactor * targetWidth + addLeftRight;
