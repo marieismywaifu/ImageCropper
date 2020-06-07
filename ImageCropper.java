@@ -27,9 +27,9 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import javax.imageio.ImageIO;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-
 import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
@@ -80,8 +80,7 @@ public class ImageCropper extends JFrame {
 	private EdgeMode edgeMode = EdgeMode.MIRROR;
 	private boolean mouseDown;
 	private int sourceWidth, sourceHeight, targetWidth, targetHeight, zoomFactor = 1, previewFactor = 1, x, y, mouseX, mouseY;
-	private BufferedImage[] images;
-	private BufferedImage previewImage;
+	private BufferedImage sourceImage, previewImage;
 	private String[] names;
 	
 	public ImageCropper() {
@@ -95,8 +94,7 @@ public class ImageCropper extends JFrame {
 			{
 				Arrays.parallelSort(suffixes);
 				final StringBuilder builder = new StringBuilder();
-				builder.append("all supported files (");
-				if (suffixes.length > 0) builder.append("*.").append(suffixes[0]);
+				builder.append("all supported files (*.").append(suffixes[0]);
 				for (int i = 1; i < suffixes.length - 1; i++) builder.append(", *.").append(suffixes[i]);
 				if (suffixes.length > 1) builder.append(" and *.").append(suffixes[suffixes.length - 1]);
 				description = builder.append(")").toString();
@@ -105,7 +103,7 @@ public class ImageCropper extends JFrame {
 			@Override public boolean accept(File file) {
 				final String name = file.getName();
 				final int i = name.lastIndexOf('.');
-				return file.isDirectory() || (i >= 0 ? Arrays.binarySearch(suffixes, name.substring(i + 1)) >= 0 : false);
+				return file.isDirectory() || (i >= 0 && Arrays.binarySearch(suffixes, name.substring(i + 1)) >= 0);
 			}
 			
 			@Override public String getDescription() {
@@ -117,7 +115,7 @@ public class ImageCropper extends JFrame {
 		// <editor-fold defaultstate="collapsed" desc="bar">
 		// <editor-fold defaultstate="collapsed" desc="mnu_file">
 		// <editor-fold defaultstate="collapsed" desc="itm_open">
-		final JMenuItem itm_open = new JMenuItem("open image(s) ...");
+		final JMenuItem itm_open = new JMenuItem("open image(s) \u2026");
 		itm_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK));
 		itm_open.addActionListener(new ActionListener() {
 			@Override public void actionPerformed(ActionEvent event) {
@@ -166,7 +164,7 @@ public class ImageCropper extends JFrame {
 		// </editor-fold>
 		
 		// <editor-fold defaultstate="collapsed" desc="mnu_edges">
-		//<editor-fold defaultstate="collapsed" desc="itm_mirror">
+		// <editor-fold defaultstate="collapsed" desc="itm_mirror">
 		final JRadioButtonMenuItem itm_mirror = new JRadioButtonMenuItem("mirror");
 		itm_mirror.setSelected(true);
 		itm_mirror.addItemListener(new ItemListener() {
@@ -174,34 +172,34 @@ public class ImageCropper extends JFrame {
 				if (event.getStateChange() == ItemEvent.SELECTED) cmd_mirror();
 			}
 		});
-		//</editor-fold>
+		// </editor-fold>
 
-		//<editor-fold defaultstate="collapsed" desc="itm_smear">
+		// <editor-fold defaultstate="collapsed" desc="itm_smear">
 		final JRadioButtonMenuItem itm_smear = new JRadioButtonMenuItem("smear");
 		itm_smear.addItemListener(new ItemListener() {
 			@Override public void itemStateChanged(ItemEvent event) {
 				if (event.getStateChange() == ItemEvent.SELECTED) cmd_smear();
 			}
 		});
-		//</editor-fold>
+		// </editor-fold>
 
-		//<editor-fold defaultstate="collapsed" desc="itm_loop">
+		// <editor-fold defaultstate="collapsed" desc="itm_loop">
 		final JRadioButtonMenuItem itm_loop = new JRadioButtonMenuItem("loop");
 		itm_loop.addItemListener(new ItemListener() {
 			@Override public void itemStateChanged(ItemEvent event) {
 				if (event.getStateChange() == ItemEvent.SELECTED) cmd_loop();
 			}
 		});
-		//</editor-fold>
+		// </editor-fold>
 
-		//<editor-fold defaultstate="collapsed" desc="itm_transparency">
+		// <editor-fold defaultstate="collapsed" desc="itm_transparency">
 		final JRadioButtonMenuItem itm_transparency = new JRadioButtonMenuItem("transparency");
 		itm_transparency.addItemListener(new ItemListener() {
 			@Override public void itemStateChanged(ItemEvent event) {
 				if (event.getStateChange() == ItemEvent.SELECTED) cmd_transparency();
 			}
 		});
-		//</editor-fold>
+		// </editor-fold>
 
 		// <editor-fold defaultstate="collapsed" desc="grp_edges">
 		final ButtonGroup grp_edges = new ButtonGroup();
@@ -209,7 +207,7 @@ public class ImageCropper extends JFrame {
 		grp_edges.add(itm_smear);
 		grp_edges.add(itm_loop);
 		grp_edges.add(itm_transparency);
-		//</editor-fold>
+		// </editor-fold>
 		
 		final JMenu mnu_edges = new JMenu("edges");
 		mnu_edges.setMnemonic(KeyEvent.VK_E);
@@ -312,6 +310,7 @@ public class ImageCropper extends JFrame {
 					targetWidth / previewFactor,
 					targetHeight / previewFactor
 				);
+				final int addLeftRight = Math.max(0, zoomFactor * targetWidth - sourceWidth), addUpDown = Math.max(0, zoomFactor * targetHeight - sourceHeight);
 				if (previewImage != null) graphics.drawImage(previewImage,
 
 					// destination upper left corner
@@ -321,10 +320,10 @@ public class ImageCropper extends JFrame {
 					(this.getWidth() + targetWidth / previewFactor) / 2, (this.getHeight() + targetHeight / previewFactor) / 2,
 
 					// source upper left corner
-					x + zoomFactor * targetWidth - 1, y + zoomFactor * targetHeight - 1,
+					x + addLeftRight, y + addUpDown,
 
 					// source lower right corner
-					x + 2 * targetWidth * zoomFactor - 1,  y + 2 * targetHeight * zoomFactor - 1,
+					x + addLeftRight + targetWidth * zoomFactor,  y + addUpDown + targetHeight * zoomFactor,
 				null);
 			}
 		};
@@ -425,44 +424,40 @@ public class ImageCropper extends JFrame {
 		
 		// read files
 		final File[] filesTemp = fch_open.getSelectedFiles();
-		final BufferedImage[] imagesTemp = new BufferedImage[filesTemp.length];
+		final BufferedImage sourceImageTemp;
 		final String[] namesTemp = new String[filesTemp.length];
-		for (int i = 0; i < filesTemp.length; i++) {
-			final String name = filesTemp[i].getName();
-			final int j = name.lastIndexOf('.');
-			namesTemp[i] = j < 0 ? name : name.substring(0, j);
-			try {
-				imagesTemp[i] = ImageIO.read(filesTemp[i]);
-			} catch (IOException exception) {
-				JOptionPane.showMessageDialog(
-					this,
-					exception,
-					"while reading \"" + name + "\" (" + (i + 1) + " / " + filesTemp.length + ")",
-					JOptionPane.ERROR_MESSAGE
-				);
-				return;
-			}
-		}
-		
-		// analyze files
-		final int sourceWidthTemp = imagesTemp[0].getWidth();
-		final int sourceHeightTemp = imagesTemp[0].getHeight();
+		final int sourceWidthTemp, sourceHeightTemp;
 		final StringBuilder builder = new StringBuilder();
-		builder.append(namesTemp[0]);
-		for (int i = 1; i < filesTemp.length; i++) {
-			if (imagesTemp[i].getWidth() != sourceWidthTemp || imagesTemp[i].getHeight() != sourceHeightTemp) {
-				JOptionPane.showMessageDialog(this, "the images don't all have the same resolution", null, JOptionPane.ERROR_MESSAGE);
-				return;
+		try {
+			sourceImageTemp = ImageIO.read(filesTemp[0]);
+			String name = filesTemp[0].getName();
+			namesTemp[0] = name;
+			int j = name.lastIndexOf('.');
+			builder.append('"').append(j > 0 ? name.substring(0, j) : name).append('"');
+			sourceWidthTemp = sourceImageTemp.getWidth();
+			sourceHeightTemp = sourceImageTemp.getHeight();
+			for (int i = 1; i < filesTemp.length; i++) {
+				BufferedImage imageTemp = ImageIO.read(filesTemp[i]);
+				if (imageTemp.getWidth() != sourceWidthTemp && imageTemp.getHeight() != sourceHeightTemp) {
+					JOptionPane.showMessageDialog(this, "the images don't all have the same resolution", null, JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				name = filesTemp[i].getName();
+				namesTemp[i] = name;
+				j = name.lastIndexOf('.');
+				builder.append(i < filesTemp.length - 1 ? ", " : " and ").append('"').append(j > 0 ? name.substring(0, j) : name).append('"');
 			}
-			builder.append(i < filesTemp.length - 1 ? ", " : " and ").append(namesTemp[i]);
+		} catch (IOException exception) {
+			JOptionPane.showMessageDialog(this, exception, null, JOptionPane.ERROR_MESSAGE);
+			return;
 		}
 		builder.append(" opened");
 		
 		// update UI
 		itm_close.setEnabled(true);
-		itm_close.setText("close image" + (imagesTemp.length > 1 ? "s" : ""));
+		itm_close.setText("close image" + (filesTemp.length > 1 ? "s" : ""));
 		itm_save.setEnabled(true);
-		itm_save.setText("save image" + (imagesTemp.length > 1 ? "s" : ""));
+		itm_save.setText("save image" + (filesTemp.length > 1 ? "s" : ""));
 		for (zoomFactor = 1; ((targetWidth * (zoomFactor + 1)) <= sourceWidthTemp) && ((targetHeight * (zoomFactor + 1)) <= sourceHeightTemp); zoomFactor++);
 		nbr_zoom.setValue(zoomFactor);
 		nbr_zoom.setEnabled(true);
@@ -471,7 +466,7 @@ public class ImageCropper extends JFrame {
 		// update other variables
 		unsavedChanges = true;
 		currentDirectory = fch_open.getCurrentDirectory();
-		images = imagesTemp;
+		sourceImage = sourceImageTemp;
 		names = namesTemp;
 		sourceWidth = sourceWidthTemp;
 		sourceHeight = sourceHeightTemp;
@@ -488,7 +483,7 @@ public class ImageCropper extends JFrame {
 		// show confirm dialog in case of unsaved changes
 		if (unsavedChanges && JOptionPane.showConfirmDialog(
 			this,
-			"Closing th" + (images.length > 1 ? "ese images" : "is image") + " will make you lose unsaved changes. Do you want to proceed?",
+			"Closing th" + (names.length > 1 ? "ese images" : "is image") + " will make you lose unsaved changes. Do you want to proceed?",
 			null,
 			JOptionPane.OK_CANCEL_OPTION,
 			JOptionPane.WARNING_MESSAGE
@@ -507,7 +502,7 @@ public class ImageCropper extends JFrame {
 		// update other variables
 		unsavedChanges = false;
 		currentDirectory = null;
-		images = null;
+		sourceImage = null;
 		previewImage = null;
 		names = null;
 		sourceWidth = 0;
@@ -522,43 +517,27 @@ public class ImageCropper extends JFrame {
 	
 	// <editor-fold defaultstate="collapsed" desc="cmd_save">
 	private void cmd_save() {
-		for (int i = 0; i < images.length; i++) {
-			BufferedImage image = new BufferedImage(zoomFactor * targetWidth, zoomFactor * targetHeight, BufferedImage.TYPE_INT_ARGB);
-			for (int setX = 0; setX < image.getWidth(); setX++) for (int setY = 0; setY < image.getHeight(); setY++) {
-				final int getX = x + setX, getY = y + setY, rgb;
-				if (getX >= 0 && getX < sourceWidth && getY >= 0 && getY < sourceHeight) rgb = images[i].getRGB(getX, getY); else switch (edgeMode) {
-					case MIRROR:
-						rgb = images[i].getRGB(
-							// f(x) = |((x + w - 2) mod (2w - 2)) - w + 2|
-							Math.abs(((((getX + sourceWidth - 2) % (sourceWidth * 2 - 2)) + (sourceWidth * 2 - 2)) % (sourceWidth * 2 - 2)) - sourceWidth + 2),
-							Math.abs(((((getY + sourceHeight - 2) % (sourceHeight * 2 - 2)) + (sourceHeight * 2 - 2)) % (sourceHeight * 2 - 2)) - sourceHeight + 2)
-						);
-						break;
-					case SMEAR:
-						rgb = images[i].getRGB(Math.max(Math.min(getX, sourceWidth - 1), 0), Math.max(Math.min(getY, sourceHeight - 1), 0));
-						break;
-					case LOOP:
-						rgb = images[i].getRGB(((getX % sourceWidth) + sourceWidth) % sourceWidth, ((getY % sourceHeight) + sourceHeight) % sourceHeight);
-						break;
-					case TRANSPARENCY:
-						rgb = 0x00_00_00_00; // AA RR GG BB
-						break;
-					default:
-						throw new Error("unsupported edge mode");
-				}
-				image.setRGB(setX, setY, rgb);
+		try {
+			for (int i = 0; i < names.length; i++) {
+				final BufferedImage targetImage = new BufferedImage(zoomFactor * targetWidth, zoomFactor * targetHeight, BufferedImage.TYPE_INT_ARGB);
+				if (edgeMode == EdgeMode.TRANSPARENCY) for (int smartX = Math.max(0, x); smartX < Math.min(zoomFactor * targetWidth, sourceWidth); smartX++) for (int smartY = Math.max(0, y); smartY < Math.min(zoomFactor * targetHeight, sourceHeight); smartY++) targetImage.setRGB(smartX - x, smartY - y, sourceImage.getRGB(smartX, smartY));
+				else for (int getX = x; getX < x + zoomFactor * targetWidth; getX++) for (int getY = 0; getY < y + zoomFactor * targetWidth; getY++) targetImage.setRGB(getX - x, getY - y, switch (edgeMode) {
+					case MIRROR -> sourceImage.getRGB(
+						// f(x) = |((x + w - 2) mod (2w - 2)) - w + 2|
+						Math.abs(((((getX + sourceWidth - 2) % (sourceWidth * 2 - 2)) + (sourceWidth * 2 - 2)) % (sourceWidth * 2 - 2)) - sourceWidth + 2),
+						Math.abs(((((getY + sourceHeight - 2) % (sourceHeight * 2 - 2)) + (sourceHeight * 2 - 2)) % (sourceHeight * 2 - 2)) - sourceHeight + 2)
+					);
+					case SMEAR -> sourceImage.getRGB(Math.max(Math.min(getX, sourceWidth - 1), 0), Math.max(Math.min(getY, sourceHeight - 1), 0));
+					case LOOP -> sourceImage.getRGB(((getX % sourceWidth) + sourceWidth) % sourceWidth, ((getY % sourceHeight) + sourceHeight) % sourceHeight);
+					default -> throw new Error("unsupported edge mode");
+				});
+				final int j = names[i].lastIndexOf('.');
+				final String name = j > 0 ? names[i].substring(0, j) : names[i];
+				ImageIO.write(targetImage, "PNG", new File(currentDirectory, name + " (" + zoomFactor * targetWidth + " \u00D7 " + zoomFactor * targetHeight + ").png"));
+				if (names.length > 1) sourceImage = ImageIO.read(new File(currentDirectory, names[(i + 1) % names.length]));
 			}
-			String name = names[i] + " (" + zoomFactor * targetWidth + " × " + zoomFactor * targetHeight + ").png";
-			try {
-				ImageIO.write(image, "PNG", new File(currentDirectory, name));
-			} catch (IOException exception) {
-				JOptionPane.showMessageDialog(
-					this,
-					exception,
-					"while writing \"" + name + "\" (" + (i + 1) + " / " + images.length + ")",
-					JOptionPane.ERROR_MESSAGE
-				);
-			}
+		} catch (IOException exception) {
+			JOptionPane.showMessageDialog(this, exception, null, JOptionPane.ERROR_MESSAGE);
 		}
 		unsavedChanges = false;
 		JOptionPane.showMessageDialog(this, "done", null, JOptionPane.INFORMATION_MESSAGE);
@@ -655,7 +634,11 @@ public class ImageCropper extends JFrame {
 		final int zoomFactorTemp = (Integer) nbr_zoom.getValue();
 		if (zoomFactor == zoomFactorTemp) return;
 		zoomFactor = zoomFactorTemp;
-		if (previewImage != null) unsavedChanges = true;
+		final int addLeftRight = Math.max(0, zoomFactor * targetWidth - sourceWidth), addUpDown = Math.max(0, zoomFactor * targetHeight - sourceHeight);
+		if (x < -addLeftRight) x = -addLeftRight;
+		else if (x + zoomFactor * targetWidth > sourceWidth + addLeftRight) x = sourceWidth - zoomFactor * targetWidth + addLeftRight;
+		if (y < -addUpDown) y = -addUpDown;
+		else if (y + zoomFactor * targetHeight > sourceHeight + addUpDown) y = sourceHeight - zoomFactor * targetHeight + addUpDown;
 		reRenderPreviewImage();
 	}
 	// </editor-fold>
@@ -685,10 +668,11 @@ public class ImageCropper extends JFrame {
 		if (mouseDown) {
 			x += mouseX - currX;
 			y += mouseY - currY;
-			if (x < 0 - zoomFactor * targetWidth + 1) x = 0 - zoomFactor * targetWidth + 1;
-			else if (x >= sourceWidth) x = sourceWidth - 1;
-			if (y < 0 - zoomFactor * targetHeight + 1) y = 0 - zoomFactor * targetHeight + 1;
-			else if (y >= sourceHeight) y = sourceHeight - 1;
+			final int addLeftRight = Math.max(0, zoomFactor * targetWidth - sourceWidth), addUpDown = Math.max(0, zoomFactor * targetHeight - sourceHeight);
+			if (x < -addLeftRight) x = -addLeftRight;
+			else if (x + zoomFactor * targetWidth > sourceWidth + addLeftRight) x = sourceWidth - zoomFactor * targetWidth + addLeftRight;
+			if (y < -addUpDown) y = -addUpDown;
+			else if (y + zoomFactor * targetHeight > sourceHeight + addUpDown) y = sourceHeight - zoomFactor * targetHeight + addUpDown;
 			cmd_paint();
 		}
 		mouseX = currX;
@@ -697,49 +681,25 @@ public class ImageCropper extends JFrame {
 	// </editor-fold>
 	
 	private void reRenderPreviewImage() {
-		if (images == null) return;
+		if (sourceImage == null) return;
 		
-		// draw the source image directly
-		previewImage = new BufferedImage(2 * (zoomFactor * targetWidth - 1) + sourceWidth, 2 * (zoomFactor * targetHeight - 1) + sourceHeight, BufferedImage.TYPE_INT_ARGB);
-		Graphics graphics = previewImage.createGraphics();
-		graphics.drawImage(images[0], zoomFactor * targetWidth - 1, zoomFactor * targetHeight - 1, null);
-		graphics.dispose();
-		
-		// draw the edges in background
+		final int addLeftRight = Math.max(0, zoomFactor * targetWidth - sourceWidth), addUpDown = Math.max(0, zoomFactor * targetHeight - sourceHeight);
+		previewImage = new BufferedImage(sourceWidth + 2 * addLeftRight, sourceHeight + 2 * addUpDown, BufferedImage.TYPE_INT_ARGB);
 		new Thread() {
 			@Override public void run() {
-				for (int previewX = 0 - zoomFactor * targetWidth + 1; previewX < sourceWidth + zoomFactor * targetWidth - 1; previewX++) {
-					for (int previewY = 0 - zoomFactor * targetHeight + 1; previewY < sourceHeight + zoomFactor * targetHeight - 1; previewY++) {
-						if (previewX <= 0 || previewX > sourceWidth || previewY <= 0 || previewY > sourceHeight) {
-							final int rgb;
-							switch (edgeMode) {
-								case MIRROR:
-									rgb = images[0].getRGB(
-										Math.abs(((((previewX + sourceWidth - 2) % (sourceWidth * 2 - 2)) + (sourceWidth * 2 - 2)) % (sourceWidth * 2 - 2)) - sourceWidth + 2),
-										Math.abs(((((previewY + sourceHeight - 2) % (sourceHeight * 2 - 2)) + (sourceHeight * 2 - 2)) % (sourceHeight * 2 - 2)) - sourceHeight + 2)
-									);
-									break;
-								case SMEAR:
-									rgb = images[0].getRGB(Math.max(Math.min(previewX, sourceWidth - 1), 0), Math.max(Math.min(previewY, sourceHeight - 1), 0));
-									break;
-								case LOOP:
-									rgb = images[0].getRGB(((previewX % sourceWidth) + sourceWidth) % sourceWidth, ((previewY % sourceHeight) + sourceHeight) % sourceHeight);
-									break;
-								case TRANSPARENCY:
-									rgb = 0x00_00_00_00;
-									break;
-								default:
-									throw new Error("unsupported edge mode");
-							}
-							previewImage.setRGB(previewX + zoomFactor * targetWidth - 1, previewY + zoomFactor * targetHeight - 1, rgb);
-						}
-					}
-				}
+				if (edgeMode == EdgeMode.TRANSPARENCY) for (int smartX = 0; smartX < sourceWidth; smartX++) for (int smartY = 0; smartY < sourceHeight; smartY++) previewImage.setRGB(smartX + addLeftRight, smartY + addUpDown, sourceImage.getRGB(smartX, smartY));
+				else for (int getX = -addLeftRight; getX < sourceWidth + addLeftRight; getX++) for (int getY = -addUpDown; getY < sourceHeight + addUpDown; getY++) previewImage.setRGB(getX + addLeftRight, getY + addUpDown, switch (edgeMode) {
+					case MIRROR -> sourceImage.getRGB(
+						Math.abs(((((getX + sourceWidth - 2) % (sourceWidth * 2 - 2)) + (sourceWidth * 2 - 2)) % (sourceWidth * 2 - 2)) - sourceWidth + 2),
+						Math.abs(((((getY + sourceHeight - 2) % (sourceHeight * 2 - 2)) + (sourceHeight * 2 - 2)) % (sourceHeight * 2 - 2)) - sourceHeight + 2)
+					);
+					case SMEAR -> sourceImage.getRGB(Math.max(Math.min(getX, sourceWidth - 1), 0), Math.max(Math.min(getY, sourceHeight - 1), 0));
+					case LOOP -> sourceImage.getRGB(((getX % sourceWidth) + sourceWidth) % sourceWidth, ((getY % sourceHeight) + sourceHeight) % sourceHeight);
+					default -> throw new Error("unsupported edge mode");
+				});
 				cmd_paint();
 			}
 		}.start();
-		
-		cmd_paint();
 	}
 	
 	// <editor-fold defaultstate="collapsed" desc="cmd_paint">
