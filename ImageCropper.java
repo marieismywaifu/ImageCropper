@@ -103,7 +103,7 @@ public class ImageCropper extends JFrame {
 			@Override public boolean accept(File file) {
 				final String name = file.getName();
 				final int i = name.lastIndexOf('.');
-				return file.isDirectory() || (i >= 0 && Arrays.binarySearch(suffixes, name.substring(i + 1)) >= 0);
+				return file.isDirectory() || (i > 0 && Arrays.binarySearch(suffixes, name.substring(i + 1)) >= 0);
 			}
 			
 			@Override public String getDescription() {
@@ -521,7 +521,7 @@ public class ImageCropper extends JFrame {
 			for (int i = 0; i < names.length; i++) {
 				final BufferedImage targetImage = new BufferedImage(zoomFactor * targetWidth, zoomFactor * targetHeight, BufferedImage.TYPE_INT_ARGB);
 				if (edgeMode == EdgeMode.TRANSPARENCY) for (int smartX = Math.max(0, x); smartX < Math.min(zoomFactor * targetWidth, sourceWidth); smartX++) for (int smartY = Math.max(0, y); smartY < Math.min(zoomFactor * targetHeight, sourceHeight); smartY++) targetImage.setRGB(smartX - x, smartY - y, sourceImage.getRGB(smartX, smartY));
-				else for (int getX = x; getX < x + zoomFactor * targetWidth; getX++) for (int getY = 0; getY < y + zoomFactor * targetWidth; getY++) targetImage.setRGB(getX - x, getY - y, switch (edgeMode) {
+				else for (int getX = x; getX < x + zoomFactor * targetWidth; getX++) for (int getY = y; getY < y + zoomFactor * targetHeight; getY++) targetImage.setRGB(getX - x, getY - y, switch (edgeMode) {
 					case MIRROR -> sourceImage.getRGB(
 						// f(x) = |((x + w - 2) mod (2w - 2)) - w + 2|
 						Math.abs(((((getX + sourceWidth - 2) % (sourceWidth * 2 - 2)) + (sourceWidth * 2 - 2)) % (sourceWidth * 2 - 2)) - sourceWidth + 2),
