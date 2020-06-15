@@ -53,12 +53,10 @@ import javax.swing.filechooser.FileFilter;
 
 public class ImageCropper extends JFrame {
 	public static void main(String[] args) {
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override public void run() {
-				ImageCropper cropper = new ImageCropper();
-				cropper.setLocationRelativeTo(null);
-				cropper.setVisible(true);
-			}
+		SwingUtilities.invokeLater(() -> {
+			ImageCropper cropper = new ImageCropper();
+			cropper.setLocationRelativeTo(null);
+			cropper.setVisible(true);
 		});
 	}
 	
@@ -117,41 +115,25 @@ public class ImageCropper extends JFrame {
 		// <editor-fold defaultstate="collapsed" desc="itm_open">
 		final JMenuItem itm_open = new JMenuItem("open image(s) \u2026");
 		itm_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK));
-		itm_open.addActionListener(new ActionListener() {
-			@Override public void actionPerformed(ActionEvent event) {
-				cmd_open();
-			}
-		});
+		itm_open.addActionListener(event -> cmd_open());
 		// </editor-fold>
 		
 		// <editor-fold defaultstate="collapsed" desc="itm_close">
 		itm_close = new JMenuItem("close image(s)");
 		itm_close.setEnabled(false);
-		itm_close.addActionListener(new ActionListener() {
-			@Override public void actionPerformed(ActionEvent event) {
-				cmd_close();
-			}
-		});
+		itm_close.addActionListener(event -> cmd_close());
 		// </editor-fold>
 		
 		// <editor-fold defaultstate="collapsed" desc="itm_save">
 		itm_save = new JMenuItem("save image(s)");
 		itm_save.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK));
 		itm_save.setEnabled(false);
-		itm_save.addActionListener(new ActionListener() {
-			@Override public void actionPerformed(ActionEvent event) {
-				cmd_save();
-			}
-		});
+		itm_save.addActionListener(event -> cmd_save());
 		// </editor-fold>
 		
 		// <editor-fold defaultstate="collapsed" desc="itm_exit">
 		final JMenuItem itm_exit = new JMenuItem("exit");
-		itm_exit.addActionListener(new ActionListener() {
-			@Override public void actionPerformed(ActionEvent event) {
-				cmd_exit();
-			}
-		});
+		itm_exit.addActionListener(event -> itm_exit());
 		// </editor-fold>
 		
 		final JMenu mnu_file = new JMenu("file");
@@ -167,37 +149,29 @@ public class ImageCropper extends JFrame {
 		// <editor-fold defaultstate="collapsed" desc="itm_mirror">
 		final JRadioButtonMenuItem itm_mirror = new JRadioButtonMenuItem("mirror");
 		itm_mirror.setSelected(true);
-		itm_mirror.addItemListener(new ItemListener() {
-			@Override public void itemStateChanged(ItemEvent event) {
-				if (event.getStateChange() == ItemEvent.SELECTED) cmd_mirror();
-			}
+		itm_mirror.addItemListener((event) -> {
+			if (event.getStateChange() == ItemEvent.SELECTED) cmd_mirror();
 		});
 		// </editor-fold>
 
 		// <editor-fold defaultstate="collapsed" desc="itm_smear">
 		final JRadioButtonMenuItem itm_smear = new JRadioButtonMenuItem("smear");
-		itm_smear.addItemListener(new ItemListener() {
-			@Override public void itemStateChanged(ItemEvent event) {
-				if (event.getStateChange() == ItemEvent.SELECTED) cmd_smear();
-			}
+		itm_smear.addItemListener((event) -> {
+			if (event.getStateChange() == ItemEvent.SELECTED) cmd_smear();
 		});
 		// </editor-fold>
 
 		// <editor-fold defaultstate="collapsed" desc="itm_loop">
 		final JRadioButtonMenuItem itm_loop = new JRadioButtonMenuItem("loop");
-		itm_loop.addItemListener(new ItemListener() {
-			@Override public void itemStateChanged(ItemEvent event) {
-				if (event.getStateChange() == ItemEvent.SELECTED) cmd_loop();
-			}
+		itm_loop.addItemListener((event) -> {
+			if (event.getStateChange() == ItemEvent.SELECTED) cmd_loop();
 		});
 		// </editor-fold>
 
 		// <editor-fold defaultstate="collapsed" desc="itm_transparency">
 		final JRadioButtonMenuItem itm_transparency = new JRadioButtonMenuItem("transparency");
-		itm_transparency.addItemListener(new ItemListener() {
-			@Override public void itemStateChanged(ItemEvent event) {
-				if (event.getStateChange() == ItemEvent.SELECTED) cmd_transparency();
-			}
+		itm_transparency.addItemListener((event) -> {
+			if (event.getStateChange() == ItemEvent.SELECTED) cmd_transparency();
 		});
 		// </editor-fold>
 
@@ -221,11 +195,9 @@ public class ImageCropper extends JFrame {
 		// <editor-fold defaultstate="collapsed" desc="itm_nightmode">
 		final JCheckBoxMenuItem itm_nightmode = new JCheckBoxMenuItem("night mode");
 		itm_nightmode.setSelected(true);
-		itm_nightmode.addItemListener(new ItemListener() {
-			@Override public void itemStateChanged(ItemEvent event) {
-				if (event.getStateChange() == ItemEvent.SELECTED) cmd_nightmode();
-				else if (event.getStateChange() == ItemEvent.DESELECTED) cmd_daymode();
-			}
+		itm_nightmode.addItemListener((event) -> {
+			if (event.getStateChange() == ItemEvent.SELECTED) cmd_nightmode();
+			else if (event.getStateChange() == ItemEvent.DESELECTED) cmd_daymode();
 		});
 		// </editor-fold>
 		
@@ -253,21 +225,13 @@ public class ImageCropper extends JFrame {
 		// <editor-fold defaultstate="collapsed" desc="nbr_width">
 		nbr_width = new JSpinner(new SpinnerNumberModel(targetWidth, 1, null, 1));
 		nbr_width.setEditor(new JSpinner.NumberEditor(nbr_width, "#"));
-		nbr_width.addChangeListener(new ChangeListener() {
-			@Override public void stateChanged(ChangeEvent event) {
-				cmd_width();
-			}
-		});
+		nbr_width.addChangeListener(event -> cmd_width());
 		// </editor-fold>
 		
 		// <editor-fold defaultstate="collapsed" desc="nbr_height">
 		nbr_height = new JSpinner(new SpinnerNumberModel(targetHeight, 1, null, 1));
 		nbr_height.setEditor(new JSpinner.NumberEditor(nbr_height, "#"));
-		nbr_height.addChangeListener(new ChangeListener() {
-			@Override public void stateChanged(ChangeEvent event) {
-				cmd_height();
-			}
-		});
+		nbr_height.addChangeListener(event -> cmd_height());
 		// </editor-fold>
 		
 		// <editor-fold defaultstate="collapsed" desc="lbl_zoom">
@@ -278,11 +242,7 @@ public class ImageCropper extends JFrame {
 		nbr_zoom = new JSpinner(new SpinnerNumberModel(1, 1, null, 1));
 		nbr_zoom.setEditor(new JSpinner.NumberEditor(nbr_zoom, "#"));
 		nbr_zoom.setEnabled(false);
-		nbr_zoom.addChangeListener(new ChangeListener() {
-			@Override public void stateChanged(ChangeEvent event) {
-				cmd_zoom();
-			}
-		});
+		nbr_zoom.addChangeListener(event -> cmd_zoom());
 		// </editor-fold>
 		
 		pnl_north = new JPanel();
@@ -687,21 +647,19 @@ public class ImageCropper extends JFrame {
 		
 		final int addLeftRight = Math.max(0, zoomFactor * targetWidth - sourceWidth), addUpDown = Math.max(0, zoomFactor * targetHeight - sourceHeight);
 		previewImage = new BufferedImage(sourceWidth + 2 * addLeftRight, sourceHeight + 2 * addUpDown, BufferedImage.TYPE_INT_ARGB);
-		new Thread() {
-			@Override public void run() {
-				if (edgeMode == EdgeMode.TRANSPARENCY) for (int smartX = 0; smartX < sourceWidth; smartX++) for (int smartY = 0; smartY < sourceHeight; smartY++) previewImage.setRGB(smartX + addLeftRight, smartY + addUpDown, sourceImage.getRGB(smartX, smartY));
-				else for (int getX = -addLeftRight; getX < sourceWidth + addLeftRight; getX++) for (int getY = -addUpDown; getY < sourceHeight + addUpDown; getY++) previewImage.setRGB(getX + addLeftRight, getY + addUpDown, switch (edgeMode) {
-					case MIRROR -> sourceImage.getRGB(
-						Math.abs(((((getX + sourceWidth - 2) % (sourceWidth * 2 - 2)) + (sourceWidth * 2 - 2)) % (sourceWidth * 2 - 2)) - sourceWidth + 2),
-						Math.abs(((((getY + sourceHeight - 2) % (sourceHeight * 2 - 2)) + (sourceHeight * 2 - 2)) % (sourceHeight * 2 - 2)) - sourceHeight + 2)
-					);
-					case SMEAR -> sourceImage.getRGB(Math.max(Math.min(getX, sourceWidth - 1), 0), Math.max(Math.min(getY, sourceHeight - 1), 0));
-					case LOOP -> sourceImage.getRGB(((getX % sourceWidth) + sourceWidth) % sourceWidth, ((getY % sourceHeight) + sourceHeight) % sourceHeight);
-					default -> throw new Error("unsupported edge mode");
-				});
-				cmd_paint();
-			}
-		}.start();
+		new Thread(() -> {
+			if (edgeMode == EdgeMode.TRANSPARENCY) for (int smartX = 0; smartX < sourceWidth; smartX++) for (int smartY = 0; smartY < sourceHeight; smartY++) previewImage.setRGB(smartX + addLeftRight, smartY + addUpDown, sourceImage.getRGB(smartX, smartY));
+			else for (int getX = -addLeftRight; getX < sourceWidth + addLeftRight; getX++) for (int getY = -addUpDown; getY < sourceHeight + addUpDown; getY++) previewImage.setRGB(getX + addLeftRight, getY + addUpDown, switch (edgeMode) {
+				case MIRROR -> sourceImage.getRGB(
+					Math.abs(((((getX + sourceWidth - 2) % (sourceWidth * 2 - 2)) + (sourceWidth * 2 - 2)) % (sourceWidth * 2 - 2)) - sourceWidth + 2),
+					Math.abs(((((getY + sourceHeight - 2) % (sourceHeight * 2 - 2)) + (sourceHeight * 2 - 2)) % (sourceHeight * 2 - 2)) - sourceHeight + 2)
+				);
+				case SMEAR -> sourceImage.getRGB(Math.max(Math.min(getX, sourceWidth - 1), 0), Math.max(Math.min(getY, sourceHeight - 1), 0));
+				case LOOP -> sourceImage.getRGB(((getX % sourceWidth) + sourceWidth) % sourceWidth, ((getY % sourceHeight) + sourceHeight) % sourceHeight);
+				default -> throw new Error("unsupported edge mode");
+			});
+			cmd_paint();
+		}).start();
 	}
 	
 	// <editor-fold defaultstate="collapsed" desc="cmd_paint">
