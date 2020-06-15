@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 
 import java.util.Arrays;
+import java.util.Locale;
 
 import javax.imageio.ImageIO;
 
@@ -48,10 +49,18 @@ import javax.swing.filechooser.FileFilter;
 public class ImageCropper extends JFrame {
 	public static void main(String[] args) {
 		SwingUtilities.invokeLater(() -> {
-			ImageCropper cropper = new ImageCropper();
+			final File[] files = new File[args.length];
+			for (int i = 0; i < args.length; i++) files[i] = new File(args[i]);
+			
+			ImageCropper cropper = new ImageCropper(files);
 			cropper.setLocationRelativeTo(null);
 			cropper.setVisible(true);
 		});
+	}
+	
+	private static String removeFileExtension(String fileName) {
+		int i = fileName.lastIndexOf('.');
+		return i > 0 ? fileName.substring(0, i) : fileName;
 	}
 	
 	private final JFileChooser fch_open;
@@ -68,14 +77,17 @@ public class ImageCropper extends JFrame {
 	
 	private boolean nightMode = true;
 	private boolean unsavedChanges;
-	private File currentDirectory;
 	private EdgeMode edgeMode = EdgeMode.MIRROR;
 	private boolean mouseDown;
 	private int sourceWidth, sourceHeight, targetWidth, targetHeight, zoomFactor = 1, previewFactor = 1, x, y, mouseX, mouseY;
 	private BufferedImage sourceImage, previewImage;
-	private String[] names;
+	private String[] paths;
 	
 	public ImageCropper() {
+		this (null);
+	}
+	
+	public ImageCropper(File[] files) {
 		// <editor-fold defaultstate="collapsed" desc="fch_open">
 		fch_open = new JFileChooser();
 		fch_open.setMultiSelectionEnabled(true);
@@ -93,7 +105,7 @@ public class ImageCropper extends JFrame {
 			}
 			
 			@Override public boolean accept(File file) {
-				final String name = file.getName();
+				final String name = file.getName().toLowerCase(Locele.ROOT);
 				final int i = name.lastIndexOf('.');
 				return file.isDirectory() || (i > 0 && Arrays.binarySearch(suffixes, name.substring(i + 1)) >= 0);
 			}
@@ -109,7 +121,7 @@ public class ImageCropper extends JFrame {
 		// <editor-fold defaultstate="collapsed" desc="itm_open">
 		final JMenuItem itm_open = new JMenuItem("open image(s) \u2026");
 		itm_open.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK));
-		itm_open.addActionListener(event -> cmd_open());
+		itm_open.addActionListener(event -> cmd_choose());
 		// </editor-fold>
 		
 		// <editor-fold defaultstate="collapsed" desc="itm_close">
@@ -333,6 +345,8 @@ public class ImageCropper extends JFrame {
 		// </editor-fold>
 		
 		initComponents();
+		
+		open(files);
 	}
 	
 	private void initComponents() {
@@ -362,73 +376,66 @@ public class ImageCropper extends JFrame {
 		pack();
 	}
 	
-	// <editor-fold defaultstate="collapsed" desc="cmd_open">
-	private void cmd_open() {
-		// show confirm dialog in case of unsaved changes
-		if (unsavedChanges && JOptionPane.showConfirmDialog(
-			this,
-			"Opening another (set of) image(s) makes you lose unsaved changes. Do you want to proceed?",
-			null,
-			JOptionPane.OK_CANCEL_OPTION,
-			JOptionPane.WARNING_MESSAGE
-		) != JOptionPane.OK_OPTION) return;
+	private void open(File[] files) {
+		if (files == null || files.length <= 0) return;
 		
-		// show file chooser
-		if (fch_open.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
-		
-		// read files
-		final File[] filesTemp = fch_open.getSelectedFiles();
 		final BufferedImage sourceImageTemp;
-		final String[] namesTemp = new String[filesTemp.length];
+		final String[] pathsTemp = new String[files.length];
 		final int sourceWidthTemp, sourceHeightTemp;
-		final StringBuilder builder = new StringBuilder();
+		final StringBuilder namesTemp = new StringBuilder();
+		
 		try {
-			sourceImageTemp = ImageIO.read(filesTemp[0]);
-			String name = filesTemp[0].getName();
-			namesTemp[0] = name;
-			int j = name.lastIndexOf('.');
-			builder.append('"').append(j > 0 ? name.substring(0, j) : name).append('"');
+			sourceImageTemp = ImageIO.read(files[0]);
+			pathsTemp[0] = files[0].getCanonicalPath();
+			namesTemp.append('"').append(removeFileExtension(files[0].getName())).append('"');
 			sourceWidthTemp = sourceImageTemp.getWidth();
 			sourceHeightTemp = sourceImageTemp.getHeight();
-			for (int i = 1; i < filesTemp.length; i++) {
-				BufferedImage imageTemp = ImageIO.read(filesTemp[i]);
-				if (imageTemp.getWidth() != sourceWidthTemp && imageTemp.getHeight() != sourceHeightTemp) {
+			
+			for (int i = 1; i < files.length; i++) {
+				final BufferedImage imageTemp = ImageIO.read(files[i]);
+				if (imageTemp.getWidth() != sourceWidthTemp || imageTemp.getHeight() != sourceHeightTemp) {
 					JOptionPane.showMessageDialog(this, "the images don't all have the same resolution", null, JOptionPane.ERROR_MESSAGE);
 					return;
 				}
-				name = filesTemp[i].getName();
-				namesTemp[i] = name;
-				j = name.lastIndexOf('.');
-				builder.append(i < filesTemp.length - 1 ? ", " : " and ").append('"').append(j > 0 ? name.substring(0, j) : name).append('"');
+				pathsTemp[i] = files[i].getCanonicalPath();
+				namesTemp.append(i < files.length - 1 ? ", \"" : " and \"").append(removeFileExtension(files[i].getName())).append('"');
 			}
 		} catch (IOException exception) {
 			JOptionPane.showMessageDialog(this, exception, null, JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		builder.append(" opened");
 		
-		// update UI
+		setTitle("cropping " + namesTemp + " \u2013 ImageCropper 2.0");
 		itm_close.setEnabled(true);
-		itm_close.setText("close image" + (filesTemp.length > 1 ? "s" : ""));
+		itm_close.setText("close image" + (files.length > 1 ? "s" : ""));
 		itm_save.setEnabled(true);
-		itm_save.setText("save image" + (filesTemp.length > 1 ? "s" : ""));
+		itm_save.setText("save image" + (files.length > 1 ? "s" : ""));
 		for (zoomFactor = 1; ((targetWidth * (zoomFactor + 1)) <= sourceWidthTemp) && ((targetHeight * (zoomFactor + 1)) <= sourceHeightTemp); zoomFactor++);
 		nbr_zoom.setValue(zoomFactor);
 		nbr_zoom.setEnabled(true);
-		lbl_names.setText(builder.toString());
+		lbl_names.setText(namesTemp + " opened");
 		
-		// update other variables
 		unsavedChanges = true;
-		currentDirectory = fch_open.getCurrentDirectory();
 		sourceImage = sourceImageTemp;
-		names = namesTemp;
+		paths = pathsTemp;
 		sourceWidth = sourceWidthTemp;
 		sourceHeight = sourceHeightTemp;
 		x = (sourceWidth - zoomFactor * targetWidth) / 2;
 		y = (sourceHeight - zoomFactor * targetHeight) / 2;
 		
-		// continue execution
 		reRenderPreviewImage();
+	}
+	
+	// <editor-fold defaultstate="collapsed" desc="cmd_choose">
+	private void cmd_choose() {
+		// show confirm dialog in case of unsaved changes
+		if (!unsavedChanges || JOptionPane.showConfirmDialog(
+			this,
+			"Opening another (set of) image(s) makes you lose unsaved changes. Do you want to proceed?",
+			null,
+			JOptionPane.OK_CANCEL_OPTION,
+			JOptionPane.WARNING_MESSAGE
+		) == JOptionPane.OK_OPTION) if (fch_open.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) open(fch_open.getSelectedFiles());
 	}
 	// </editor-fold>
 	
@@ -437,7 +444,7 @@ public class ImageCropper extends JFrame {
 		// show confirm dialog in case of unsaved changes
 		if (unsavedChanges && JOptionPane.showConfirmDialog(
 			this,
-			"Closing th" + (names.length > 1 ? "ese images" : "is image") + " will make you lose unsaved changes. Do you want to proceed?",
+			"Closing th" + (paths.length > 1 ? "ese images" : "is image") + " will make you lose unsaved changes. Do you want to proceed?",
 			null,
 			JOptionPane.OK_CANCEL_OPTION,
 			JOptionPane.WARNING_MESSAGE
@@ -455,10 +462,9 @@ public class ImageCropper extends JFrame {
 		
 		// update other variables
 		unsavedChanges = false;
-		currentDirectory = null;
 		sourceImage = null;
 		previewImage = null;
-		names = null;
+		paths = null;
 		sourceWidth = 0;
 		sourceHeight = 0;
 		x = 0;
@@ -485,10 +491,8 @@ public class ImageCropper extends JFrame {
 					case LOOP -> sourceImage.getRGB(((getX % sourceWidth) + sourceWidth) % sourceWidth, ((getY % sourceHeight) + sourceHeight) % sourceHeight);
 					default -> throw new Error("unsupported edge mode");
 				});
-				final int j = names[i].lastIndexOf('.');
-				final String name = j > 0 ? names[i].substring(0, j) : names[i];
-				ImageIO.write(targetImage, "PNG", new File(currentDirectory, name + " (" + zoomFactor * targetWidth + " \u00D7 " + zoomFactor * targetHeight + ").png"));
-				if (names.length > 1) sourceImage = ImageIO.read(new File(currentDirectory, names[(i + 1) % names.length]));
+				ImageIO.write(targetImage, "PNG", new File(removeFileExtension(new File(paths[i]).getName()) + " (" + zoomFactor * targetWidth + " \u00D7 " + zoomFactor * targetHeight + ").png"));
+				if (names.length > 1) sourceImage = ImageIO.read(new File(currentDirectory, paths[(i + 1) % paths.length]));
 			}
 		} catch (IOException exception) {
 			JOptionPane.showMessageDialog(this, exception, null, JOptionPane.ERROR_MESSAGE);
