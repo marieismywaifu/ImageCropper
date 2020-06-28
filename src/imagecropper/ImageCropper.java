@@ -575,13 +575,13 @@ public class ImageCropper extends JFrame {
 	// <editor-fold defaultstate="collapsed" desc="cmd_target_size">
 	private void cmd_target_size() {
 		final int changeHoriz = (Integer) nbr_width.getValue() - zoomFactor * targetWidth, changeVert = (Integer) nbr_height.getValue() - zoomFactor * targetHeight;
-		if (changeHoriz != 0 && changeVert != 0) {
+		if (changeHoriz != 0 || changeVert != 0) {
 			targetWidth += changeHoriz;
 			targetHeight += changeVert;
 			cmd_preview_size();
 			if (previewImage != null) {
-				x -= changeHoriz / 2 + (x % 2 != 0 ? changeHoriz % 2 : 0);
-				y -= changeVert / 2 + (y % 2 != 0 ? changeVert % 2 : 0);
+				x -= zoomFactor * changeHoriz / 2 + (x % 2 != 0 ? (zoomFactor * changeHoriz) % 2 : 0);
+				y -= zoomFactor * changeVert / 2 + (y % 2 != 0 ? (zoomFactor * changeVert) % 2 : 0);
 				unsavedChanges = true;
 				updateOffsets();
 				reRenderPreviewImage();
