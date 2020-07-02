@@ -58,7 +58,8 @@ public class ImageCropper extends JFrame {
 		});
 	}
 	
-	private static String removeFileExtension(String fileName) {
+	private static String getName(File file) {
+		String fileName = file.getName();
 		int i = fileName.lastIndexOf('.');
 		return i > 0 ? fileName.substring(0, i) : fileName;
 	}
@@ -66,6 +67,8 @@ public class ImageCropper extends JFrame {
 	private final JFileChooser fch_open;
 	private final JMenuBar bar;
 	private final JMenuItem itm_close, itm_save;
+	private final ButtonGroup grp_image;
+	private final JMenu mnu_image;
 	private final JPanel pnl_north;
 	private final JSpinner nbr_width, nbr_height, nbr_zoom;
 	private final JPanel pnl_center, pnl_south;
@@ -203,9 +206,19 @@ public class ImageCropper extends JFrame {
 		});
 		// </editor-fold>
 		
+		// <editor-fold defaultstate="collapsed" desc="grp_image">
+		grp_image = new ButtonGroup();
+		// </editor-fold>
+		
+		// <editor-fold defautlstate="collapsed" desc="mnu_image">
+		mnu_image = new JMenu("preview image");
+		mnu_image.setEnabled(false);
+		// </editor-fold>
+		
 		final JMenu mnu_preview = new JMenu("preview");
 		mnu_preview.setMnemonic(KeyEvent.VK_P);
 		mnu_preview.add(itm_nightmode);
+		mnu_preview.add(mnu_image);
 		// </editor-fold>
 		
 		bar = new JMenuBar();
@@ -406,20 +419,35 @@ public class ImageCropper extends JFrame {
 		final BufferedImage sourceImageTemp;
 		final int sourceWidthTemp, sourceHeightTemp;
 		final StringBuilder namesTemp = new StringBuilder();
+		final JRadioButtonMenuItem[] imageItemsTemp = new JRadioButtonMenuItem[files.length];
 		
 		try {
 			sourceImageTemp = ImageIO.read(files[0]);
-			namesTemp.append('"').append(removeFileExtension(files[0].getName())).append('"');
 			sourceWidthTemp = sourceImageTemp.getWidth();
 			sourceHeightTemp = sourceImageTemp.getHeight();
+			String nameTemp = getName(files[0]);
+			namesTemp.append('"').append(nameTemp).append('"');
+			JRadioButtonMenuItem itm_image = new JRadioButtonMenuItem(nameTemp);
+			itm_image.setSelected(true);
+			itm_image.addItemListener(event -> {
+				if (event.getStateChange() == ItemEvent.SELECTED) cmd_preview_image(0);
+			});
+			imageItemsTemp[0] = itm_image;
 			
-			for (int i = 1; i < files.length; i++) {
+			for (int sillyStuff = 1; sillyStuff < files.length; sillyStuff++) {
+				final int i = sillyStuff;
 				final BufferedImage imageTemp = ImageIO.read(files[i]);
 				if (imageTemp.getWidth() != sourceWidthTemp || imageTemp.getHeight() != sourceHeightTemp) {
 					JOptionPane.showMessageDialog(this, "the images don't all have the same resolution", null, JOptionPane.ERROR_MESSAGE);
 					return;
 				}
-				namesTemp.append(i < files.length - 1 ? ", \"" : " and \"").append(removeFileExtension(files[i].getName())).append('"');
+				nameTemp = getName(files[i]);
+				namesTemp.append(i < files.length - 1 ? ", \"" : " and \"").append(nameTemp).append('"');
+				itm_image = new JRadioButtonMenuItem(nameTemp);
+				itm_image.addItemListener(event -> {
+					if (event.getStateChange() == ItemEvent.SELECTED) cmd_preview_image(i);
+				});
+				imageItemsTemp[i] = itm_image;
 			}
 		} catch (IOException exception) {
 			JOptionPane.showMessageDialog(this, exception, null, JOptionPane.ERROR_MESSAGE);
@@ -431,6 +459,13 @@ public class ImageCropper extends JFrame {
 		itm_close.setText("close image" + (files.length > 1 ? "s" : ""));
 		itm_save.setEnabled(true);
 		itm_save.setText("save image" + (files.length > 1 ? "s" : ""));
+		grp_image.getElements().asIterator().forEachRemaining(grp_image::remove);
+		mnu_image.removeAll();
+		for (var itm_image : imageItemsTemp) {
+			grp_image.add(itm_image);
+			mnu_image.add(itm_image);
+		}
+		mnu_image.setEnabled(files.length > 1);
 		for (zoomFactor = 1; ((targetWidth * (zoomFactor + 1)) <= sourceWidthTemp) && ((targetHeight * (zoomFactor + 1)) <= sourceHeightTemp); zoomFactor++);
 		nbr_zoom.setValue(zoomFactor);
 		nbr_zoom.setEnabled(true);
@@ -472,17 +507,18 @@ public class ImageCropper extends JFrame {
 			JOptionPane.WARNING_MESSAGE
 		) != JOptionPane.OK_OPTION) return;
 		
-		// update UI
 		itm_close.setEnabled(false);
 		itm_close.setText("close image(s)");
 		itm_save.setEnabled(false);
 		itm_save.setText("save image(s)");
+		grp_image.getElements().asIterator().forEachRemaining(grp_image::remove);
+		mnu_image.removeAll();
+		mnu_image.setEnabled(false);
 		nbr_zoom.setEnabled(false);
 		nbr_zoom.setValue(1);
 		lbl_offsets.setText(null);
 		lbl_names.setText("no image(s) opened");
 		
-		// update other variables
 		unsavedChanges = false;
 		sourceImage = null;
 		previewImage = null;
@@ -492,7 +528,6 @@ public class ImageCropper extends JFrame {
 		x = 0;
 		y = 0;
 		
-		// continue execution
 		updateOffsets();
 		pnl_center.repaint();
 	}
@@ -561,6 +596,17 @@ public class ImageCropper extends JFrame {
 		if (nightMode != nightModeTemp) {
 			nightMode = nightModeTemp;
 			pnl_center.repaint();
+		}
+	}
+	// </editor-fold>
+	
+	// <editor-fold defaultstate="collapsed" desc="cmd_preview_image">
+	private void cmd_preview_image(int i) {
+		try {
+			sourceImage = ImageIO.read(files[i]);
+			reRenderPreviewImage();
+		} catch (ArrayIndexOutOfBoundsException | IOException exception) {
+			JOptionPane.showMessageDialog(this, exception, null, JOptionPane.ERROR_MESSAGE);
 		}
 	}
 	// </editor-fold>
