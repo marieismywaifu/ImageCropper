@@ -620,7 +620,7 @@ public class ImageCropper extends JFrame {
 	
 	// <editor-fold defaultstate="collapsed" desc="cmd_target_size">
 	private void cmd_target_size() {
-		final int changeHoriz = (Integer) nbr_width.getValue() - zoomFactor * targetWidth, changeVert = (Integer) nbr_height.getValue() - zoomFactor * targetHeight;
+		final int changeHoriz = (Integer) nbr_width.getValue() - targetWidth, changeVert = (Integer) nbr_height.getValue() - targetHeight;
 		if (changeHoriz != 0 || changeVert != 0) {
 			targetWidth += changeHoriz;
 			targetHeight += changeVert;
